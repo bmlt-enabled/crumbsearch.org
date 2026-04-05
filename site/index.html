@@ -5,32 +5,99 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Crumb Search - Meeting Finder</title>
     <style>
-        body {
-            margin: 0;
-            background: #ffffff;
-            color: #111827;
+        :root {
+            --demo-bar-height: 56px;
         }
 
-        @media (prefers-color-scheme: dark) {
-            body {
-                background: #0f172a;
-                color: #f8fafc;
-            }
+        html, body {
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: #ffffff;
+            padding-top: var(--demo-bar-height);
+            box-sizing: border-box;
+        }
+
+        body.dark {
+            background: #0f172a;
+        }
+
+        #demo-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: var(--demo-bar-height);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 0 12px;
+            box-sizing: border-box;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(6px);
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        body.dark #demo-bar {
+            background: rgba(15,23,42,0.95);
+            border-color: #334155;
+        }
+
+        #dark-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 20px;
+            line-height: 1;
+        }
+
+        #crumb-widget {
+            display: block;
+            width: 100%;
+            min-height: calc(100vh - var(--demo-bar-height));
         }
     </style>
 </head>
 <body>
+<div id="demo-bar">
+    <button id="dark-btn" onclick="toggleDark()">🌙</button>
+</div>
+
 <div
         id="crumb-widget"
         data-server="https://aggregator.bmltenabled.org/main_server/"
 ></div>
+
 <script>
     var CrumbWidgetConfig = {
         geolocation: true,
         geolocationRadius: 75,
-        darkMode: 'auto'
+        hideHeader: true
+    };
+
+    function applyDarkState(isDark) {
+        document.body.classList.toggle('dark', isDark);
+        var w = document.getElementById('crumb-widget');
+        if (w) w.classList.toggle('bmlt-dark-force', isDark);
+        document.getElementById('dark-btn').textContent = isDark ? '☀️' : '🌙';
+    }
+
+    function toggleDark() {
+        var isDark = !document.body.classList.contains('dark');
+        localStorage.setItem('crumb-dark', isDark ? 'dark' : 'light');
+        applyDarkState(isDark);
     }
 </script>
+
 <script type="module" src="https://cdn.aws.bmlt.app/crumb-widget.js"></script>
+
+<script>
+    var saved = localStorage.getItem('crumb-dark');
+    var isDark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+    applyDarkState(isDark);
+</script>
 </body>
 </html>
