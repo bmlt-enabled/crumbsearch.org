@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crumb Search - Meeting Finder</title>
+</head>
+<body>
+<div
+        id="crumb-widget"
+        data-server="https://aggregator.bmltenabled.org/main_server/"
+></div>
+<script>
+    var CrumbWidgetConfig = {
+        geolocation: true,
+        geolocationRadius: 75,
+    }
+</script>
+<script type="module" src="https://cdn.aws.bmlt.app/crumb-widget.js"></script>
+</body>
+</html>
