@@ -67,15 +67,16 @@
 </div>
 
 <div
-        id="crumb-widget"
-        data-server="https://aggregator.bmltenabled.org/main_server/"
+    id="crumb-widget"
+    data-server="https://aggregator.bmltenabled.org/main_server/"
+    data-path="/"
 ></div>
 
 <script>
     var CrumbWidgetConfig = {
         geolocation: true,
         geolocationRadius: 75,
-        hideHeader: true
+        hideHeader: false
     };
 
     function applyDarkState(isDark) {
