@@ -33,12 +33,24 @@
             z-index: 10000;
             display: flex;
             align-items: center;
-            justify-content: flex-end;
+            justify-content: space-between;
             padding: 0 12px;
             box-sizing: border-box;
             background: rgba(255,255,255,0.95);
             backdrop-filter: blur(6px);
             border-bottom: 1px solid #e5e7eb;
+        }
+
+        #demo-bar-title {
+            font-family: system-ui, sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            color: #1e293b;
+            margin: 0;
+        }
+
+        body.dark #demo-bar-title {
+            color: #f1f5f9;
         }
 
         body.dark #demo-bar {
@@ -63,6 +75,7 @@
 </head>
 <body>
 <div id="demo-bar">
+    <span id="demo-bar-title">Narcotics Anonymous Meeting Finder</span>
     <button id="dark-btn" onclick="toggleDark()">🌙</button>
 </div>
 
@@ -75,6 +88,7 @@
 <script>
     var CrumbWidgetConfig = {
         geolocation: true,
+        hideHeader: true,
     };
 
     function applyDarkState(isDark) {
