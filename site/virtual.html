@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Crumb Search - Meeting Finder</title>
+    <title>Crumb Search - Virtual Meeting Finder</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
     <style>
         :root {
@@ -99,9 +99,9 @@
 </head>
 <body>
 <div id="demo-bar">
-    <span id="demo-bar-title">Narcotics Anonymous Meeting Finder</span>
+    <span id="demo-bar-title">Narcotics Anonymous Virtual Meeting Finder</span>
     <div class="demo-bar-actions">
-        <a class="demo-bar-link" href="/virtual.html">Virtual Meetings</a>
+        <a class="demo-bar-link" href="/">In-Person Meetings</a>
         <button id="dark-btn" onclick="toggleDark()">🌙</button>
     </div>
 </div>
@@ -114,8 +114,9 @@
 
 <script>
     var CrumbWidgetConfig = {
-        geolocation: true,
+        virtual: true,
         hideHeader: true,
+        columns: ["time", "name", "address", "formats"]
     };
 
     function applyDarkState(isDark) {
