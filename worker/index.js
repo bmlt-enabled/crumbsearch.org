@@ -58,8 +58,13 @@ async function handle(request, env, ctx) {
   }
 
   const meta = buildMeta(meeting, url);
+  // Strip any default OG/Twitter/description tags from the base shell, then append
+  // per-meeting ones, so crawlers (which use the first occurrence) see only ours.
   return new HTMLRewriter()
     .on('title', new TitleSetter(meta.title))
+    .on('meta[property^="og:"]', new Remover())
+    .on('meta[name^="twitter:"]', new Remover())
+    .on('meta[name="description"]', new Remover())
     .on('head', new HeadInjector(meta.tags))
     .transform(assetResponse);
 }
@@ -98,7 +103,7 @@ function buildMeta(meeting, url) {
   const title = `${name} · ${SITE_NAME}`;
   const description = buildDescription(meeting);
   const pageUrl = url.href;
-  const image = `${url.origin}/favicon.svg`;
+  const image = `${url.origin}/og-image.png`;
 
   const tag = (attr, key, value) => `<meta ${attr}="${escapeAttr(key)}" content="${escapeAttr(value)}">`;
   const tags =
@@ -109,9 +114,12 @@ function buildMeta(meeting, url) {
     tag('property', 'og:description', description) +
     tag('property', 'og:url', pageUrl) +
     tag('property', 'og:image', image) +
-    tag('name', 'twitter:card', 'summary') +
+    tag('property', 'og:image:width', '1200') +
+    tag('property', 'og:image:height', '630') +
+    tag('name', 'twitter:card', 'summary_large_image') +
     tag('name', 'twitter:title', title) +
     tag('name', 'twitter:description', description) +
+    tag('name', 'twitter:image', image) +
     '\n';
 
   return { title, tags };
@@ -189,5 +197,11 @@ class HeadInjector {
   }
   element(element) {
     element.append(this.html, { html: true });
+  }
+}
+
+class Remover {
+  element(element) {
+    element.remove();
   }
 }
