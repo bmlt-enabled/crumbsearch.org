@@ -1,3 +1,2 @@
-/virtual      /virtual.html  200
 /virtual/*    /virtual.html  200
 /*            /index.html    200
