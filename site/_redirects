@@ -1,1 +1,6 @@
-/virtual/*    /virtual  200
+# Serve the virtual finder (virtual.html, served at /virtual) for its deep links.
+# Rewriting to the canonical /virtual (not /virtual.html) avoids Cloudflare's
+# .html canonicalization, which would 308-redirect and drop the meeting path.
+/virtual/*    /virtual      200
+# SPA fallback for the in-person finder (index.html).
+/*            /index.html   200
