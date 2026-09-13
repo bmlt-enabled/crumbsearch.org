@@ -6,7 +6,12 @@
     "enabled": true
   },
   "assets": {
-    "directory": "site"
+    "directory": "site",
+    // "none" disables Cloudflare's automatic .html canonicalization (which would
+    // 301 /virtual.html -> /virtual). Without it, the _redirects rewrite of
+    // /virtual -> /virtual.html bounced forever, and deep links like
+    // /virtual/<meeting> got redirected back to /virtual, dropping the path.
+    "html_handling": "none"
   },
   "compatibility_flags": [
     "nodejs_compat"
