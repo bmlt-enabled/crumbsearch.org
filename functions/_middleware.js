@@ -20,6 +20,8 @@
 const DEFAULT_SERVER = 'https://aggregator.bmltenabled.org/main_server/';
 const SITE_NAME = 'Crumb Search';
 const ORG = 'Narcotics Anonymous';
+// Meeting pages share one branded title; the meeting's own name + time lead the description.
+const MEETING_TITLE = `${ORG} Meetings - ${SITE_NAME}`;
 const FETCH_TIMEOUT_MS = 3000;
 
 const WEEKDAYS = ['', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -102,8 +104,7 @@ async function fetchMeeting(env, id) {
 }
 
 function buildMeta(meeting, url) {
-  const name = (meeting.meeting_name || '').trim() || 'Meeting';
-  const title = `${name} · ${SITE_NAME}`;
+  const title = MEETING_TITLE;
   const description = buildDescription(meeting);
   const pageUrl = url.href;
   const image = `${url.origin}/og-image.png`;
@@ -129,7 +130,8 @@ function buildMeta(meeting, url) {
 }
 
 function buildDescription(meeting) {
-  const parts = [`${ORG} meeting`];
+  const name = (meeting.meeting_name || '').trim() || 'Meeting';
+  const parts = [name];
 
   const day = WEEKDAYS[Number(meeting.weekday_tinyint)] || '';
   const time = formatTime(meeting.start_time);
