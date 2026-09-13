@@ -2,17 +2,13 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "crumbsearch-org",
   "compatibility_date": "2026-05-07",
-  "main": "worker/index.js",
   "observability": {
     "enabled": true
   },
   "assets": {
-    "directory": "site",
-    "binding": "ASSETS",
-    // The worker runs first so it can inject per-meeting Open Graph tags for link
-    // unfurls; it forwards everything else (and all non-meeting routing) to ASSETS.
-    "run_worker_first": true
+    "directory": "site"
   },
+  // Read by the Pages Function in functions/_middleware.js (unfurl meta injection).
   "vars": {
     "BMLT_SERVER": "https://aggregator.bmltenabled.org/main_server/"
   },

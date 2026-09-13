@@ -1,6 +1,5 @@
-# Serve the virtual finder (virtual.html, served at /virtual) for its deep links.
-# Rewriting to the canonical /virtual (not /virtual.html) avoids Cloudflare's
-# .html canonicalization, which would 308-redirect and drop the meeting path.
-/virtual/*    /virtual      200
-# SPA fallback for the in-person finder (index.html).
-/*            /index.html   200
+# SPA routing (index.html / virtual.html shells and the /virtual/* deep links) is
+# handled in functions/_middleware.js, NOT here. On Cloudflare Pages, _redirects rules
+# run BEFORE Functions, so a `/*` or `/virtual/*` rewrite here would short-circuit the
+# middleware and break the per-meeting link-unfurl injection. Leave this file empty
+# unless you need a redirect that must run ahead of the Function.

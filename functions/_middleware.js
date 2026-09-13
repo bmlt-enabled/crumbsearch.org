@@ -1,16 +1,20 @@
 /**
- * Crumb Search edge worker.
+ * Crumb Search Pages Function (middleware).
  *
- * The site is otherwise a static SPA (see wrangler.jsonc `assets` + site/_redirects).
- * This worker exists for ONE reason: link unfurls. Slack / iMessage / Signal / etc.
- * fetch the raw HTML and read <meta> tags; they do not run the widget's JavaScript, so
- * a shared deep link to a specific meeting would otherwise unfurl with the generic
- * homepage title. For meeting-detail paths we fetch that one meeting from the BMLT
- * server and inject per-meeting Open Graph / Twitter tags into the served HTML.
+ * This handles two things for the static SPA:
  *
- * Everything else (routing, _redirects, clean URLs, static files) is left to the
- * static-assets pipeline via env.ASSETS.fetch(). Any error here falls back to it, so
- * the worst case is simply the pre-existing behavior with no custom unfurl.
+ * 1. SPA routing. The site has two shells — index.html (in-person, served at "/") and
+ *    virtual.html (served at "/virtual"). Any deep link that doesn't map to a real file
+ *    must render the right shell so the widget's History router can boot and read the
+ *    path. (This replaces the old site/_redirects `/* -> /index.html` and
+ *    `/virtual/* -> /virtual` rewrites: on Cloudflare Pages, _redirects run BEFORE
+ *    Functions, so those rules would short-circuit this middleware and prevent the
+ *    per-meeting unfurl below.)
+ *
+ * 2. Link unfurls. Slack / iMessage / Signal / etc. fetch the raw HTML and read <meta>
+ *    tags; they do not run the widget's JavaScript. So for meeting-detail deep links we
+ *    fetch that one meeting from the BMLT server and inject per-meeting Open Graph /
+ *    Twitter tags into the shell. Any failure falls back to the shell's default card.
  */
 
 const DEFAULT_SERVER = 'https://aggregator.bmltenabled.org/main_server/';
@@ -22,51 +26,50 @@ const WEEKDAYS = ['', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'F
 const VENUE_VIRTUAL = 2;
 const VENUE_HYBRID = 3;
 
-export default {
-  async fetch(request, env, ctx) {
+export async function onRequest(context) {
+  const { request, next, env } = context;
+  const url = new URL(request.url);
+
+  // Which shell does this path belong to?
+  const wantsVirtual = url.pathname === '/virtual' || url.pathname.startsWith('/virtual/');
+  const shellPath = wantsVirtual ? '/virtual' : '/';
+
+  const id = request.method === 'GET' ? meetingIdFromPath(url.pathname) : null;
+
+  // Meeting deep link: serve the shell with per-meeting unfurl tags injected.
+  if (id) {
     try {
-      return await handle(request, env, ctx);
+      const shell = await env.ASSETS.fetch(new URL(shellPath, url.origin));
+      const contentType = shell.headers.get('content-type') || '';
+      if (!contentType.includes('text/html')) return shell;
+
+      const meeting = await fetchMeeting(env, id);
+      if (!meeting) return shell; // graceful: correct shell, default card
+
+      const meta = buildMeta(meeting, url);
+      // Strip any default OG/Twitter/description tags from the shell, then append the
+      // per-meeting ones, so crawlers (which use the first occurrence) see only ours.
+      return new HTMLRewriter()
+        .on('title', new TitleSetter(meta.title))
+        .on('meta[property^="og:"]', new Remover())
+        .on('meta[name^="twitter:"]', new Remover())
+        .on('meta[name="description"]', new Remover())
+        .on('head', new HeadInjector(meta.tags))
+        .transform(shell);
     } catch {
-      // Never let the unfurl logic take the site down.
-      return env.ASSETS.fetch(request);
+      // fall through to normal handling below
     }
   }
-};
 
-async function handle(request, env, ctx) {
-  const url = new URL(request.url);
-  const id = meetingIdFromPath(url.pathname);
-
-  // Only meeting-detail GETs get special treatment; everything else is normal.
-  if (request.method !== 'GET' || !id) {
-    return env.ASSETS.fetch(request);
+  // Non-meeting request. Real files (and the shell URLs themselves) are served as-is;
+  // any other path is an SPA route and renders the appropriate shell (index.html or
+  // virtual.html) so the widget's History router can boot and read the path.
+  const isFile = /\.[a-z0-9]+$/i.test(url.pathname);
+  const isShell = url.pathname === '/' || url.pathname === '/virtual';
+  if (isFile || isShell) {
+    return next();
   }
-
-  // Serve the same HTML shell the SPA would get for this path, so the widget still
-  // boots and selects the meeting client-side once JS runs.
-  const basePath = url.pathname.startsWith('/virtual/') ? '/virtual' : '/';
-  const assetResponse = await env.ASSETS.fetch(new Request(new URL(basePath, url.origin), request));
-
-  const contentType = assetResponse.headers.get('content-type') || '';
-  if (!contentType.includes('text/html')) {
-    return assetResponse;
-  }
-
-  const meeting = await fetchMeeting(env, id, ctx);
-  if (!meeting) {
-    return assetResponse; // graceful: generic unfurl, widget still works
-  }
-
-  const meta = buildMeta(meeting, url);
-  // Strip any default OG/Twitter/description tags from the base shell, then append
-  // per-meeting ones, so crawlers (which use the first occurrence) see only ours.
-  return new HTMLRewriter()
-    .on('title', new TitleSetter(meta.title))
-    .on('meta[property^="og:"]', new Remover())
-    .on('meta[name^="twitter:"]', new Remover())
-    .on('meta[name="description"]', new Remover())
-    .on('head', new HeadInjector(meta.tags))
-    .transform(assetResponse);
+  return env.ASSETS.fetch(new URL(shellPath, url.origin));
 }
 
 /** Extract the trailing numeric meeting id from a slug path (mirrors the widget's meetingIdFromPath). */
@@ -75,7 +78,7 @@ function meetingIdFromPath(pathname) {
   return match ? match[1] : null;
 }
 
-async function fetchMeeting(env, id, ctx) {
+async function fetchMeeting(env, id) {
   const server = (env && env.BMLT_SERVER) || DEFAULT_SERVER;
   const base = server.endsWith('/') ? server : server + '/';
   const fields = 'meeting_name,weekday_tinyint,start_time,duration_time,location_municipality,location_province,venue_type,time_zone';
